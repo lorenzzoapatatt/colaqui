@@ -6,7 +6,7 @@
 
 **Architecture:** Build one modular Next.js App Router application with domain and infrastructure modules kept outside React components. PostgreSQL/Prisma owns metadata and state; an S3-compatible adapter owns binaries. This branch establishes the interfaces later branches will use for assisted publishing, the worker, and official marketplace connectors.
 
-**Tech Stack:** Node.js 24.14.0, pnpm 11.25.0, TypeScript 7.0.2, Next.js 16.4.3, React 19.3.1, PostgreSQL 17, Prisma 7.10.1, MinIO/S3, Zod 4.6.7, Sharp 0.35.5, Vitest 5.0.5, Testing Library 16.3.3, Playwright 1.64.1, Tailwind CSS 4.3.3.
+**Tech Stack:** Node.js 24.14.0, pnpm 11.25.0, TypeScript 6.0.3, Next.js 16.4.3, React 19.3.1, PostgreSQL 17, Prisma 7.10.1, MinIO/S3, Zod 4.6.7, Sharp 0.35.5, Vitest 5.0.5, Testing Library 16.3.3, Playwright 1.64.1, Tailwind CSS 4.3.3.
 
 **Spec:** `docs/superpowers/specs/2026-10-29-colaqui-design.md`
 

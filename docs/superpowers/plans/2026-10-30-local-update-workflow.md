@@ -4,7 +4,7 @@
 
 **Goal:** Entregar `local:update` e `local:dev` para atualizar imagens Docker, aguardar PostgreSQL/MinIO, aplicar Prisma e opcionalmente iniciar o Next.js em uma sequência única e segura.
 
-**Architecture:** Um script Node ESM autocontido cria o `.env` apenas quando ausente, descreve uma lista determinística de subprocessos e os executa em fail-fast com argumentos constantes. O `package.json` expõe os dois comandos e o README documenta que Docker Desktop e upgrades de versão principal do PostgreSQL ficam fora do fluxo.
+**Architecture:** Um script Node ESM autocontido cria o `.env` apenas quando ausente, descreve uma lista determinística de subprocessos e os executa em fail-fast com argumentos constantes. O Compose atualiza PostgreSQL e compila releases fixados do código oficial do MinIO, pois as imagens oficiais foram retiradas do registro. O `package.json` expõe os dois comandos e o README documenta que Docker Desktop e upgrades de versão principal do PostgreSQL ficam fora do fluxo.
 
 **Tech Stack:** Node.js 24, ESM, Docker Compose, PostgreSQL 17, MinIO, Prisma 7, pnpm/Corepack, Vitest.
 
@@ -22,9 +22,9 @@
 ## Review Focus
 
 - Docker indisponível deve parar antes de pull, Compose ou Prisma e mostrar ação clara ao usuário.
-- `minio-init` encerra com código zero por desenho; o fluxo não pode tratá-lo como serviço permanente no `--wait`.
+- `minio-init` encerra com código zero por desenho; o fluxo deve executá-lo com `compose run --rm --no-deps -T`, sem tratá-lo como serviço permanente nem deixar o menu interativo aberto.
 - `.env` existente deve permanecer byte a byte igual; `.env` novo precisa de segredo aleatório válido.
-- Falha de pull, saúde, inicialização do bucket ou migration deve impedir o Next.js de iniciar.
+- Falha de pull, compilação do MinIO, saúde, inicialização do bucket ou migration deve impedir o Next.js de iniciar.
 - Windows precisa resolver `corepack.cmd`, enquanto Linux/macOS usam `corepack`, sem interpolar comandos do usuário.
 
 ---
@@ -127,7 +127,7 @@ docs: expose local update commands
 
 Run: `corepack pnpm local:update`
 
-Expected: Compose válido, imagens verificadas/puxadas, PostgreSQL e MinIO saudáveis, `minio-init` exit 0, Prisma gerado, migrations aplicadas/status atual, exit 0.
+Expected: Compose válido, PostgreSQL atualizado, MinIO oficial compilado com metadados de release, PostgreSQL e MinIO saudáveis, `minio-init` exit 0, Prisma gerado, migrations aplicadas/status atual, exit 0.
 
 - [ ] **Step 2: Confirmar o gate do modo dev sem deixar processo órfão**
 

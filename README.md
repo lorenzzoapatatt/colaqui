@@ -4,7 +4,7 @@ Aplicativo pessoal e de proprietário único para cadastrar uma coisa usada uma 
 
 ## O que existe nesta branch
 
-A `feature/colaqui-001` entrega:
+A base iniciada em `feature/colaqui-001`, com o atualizador de `feature/colaqui-003`, entrega:
 
 - acesso seguro para um único proprietário, com Argon2id, sessões revogáveis e limite de tentativas;
 - catálogo de produtos pessoais com preço em centavos, versão otimista e arquivamento;
@@ -30,11 +30,11 @@ O desenho aprovado está em [`docs/superpowers/specs/2026-10-29-colaqui-design.m
 
 ```powershell
 cd C:\Users\loren\source\repos\lorenzzoapatatt\colaqui
-git switch feature/colaqui-001
+git switch feature/colaqui-003
 corepack pnpm local:dev
 ```
 
-O comando `local:dev` cria o `.env` somente se ele ainda não existir, instala as dependências, valida o Compose, atualiza as imagens do PostgreSQL 17 e do MinIO, aguarda os serviços ficarem saudáveis, prepara o bucket, gera o Prisma Client, aplica e verifica as migrations e então inicia o Next.js. Ele não exige `corepack enable` nem permissões administrativas.
+O comando `local:dev` cria o `.env` somente se ele ainda não existir, instala as dependências, valida o Compose, atualiza o PostgreSQL 17, compila os releases fixados do MinIO a partir dos módulos oficiais, aguarda os serviços ficarem saudáveis, prepara o bucket, gera o Prisma Client, aplica e verifica as migrations e então inicia o Next.js. Ele não exige `corepack enable` nem permissões administrativas.
 
 Abra [http://localhost:3000/setup](http://localhost:3000/setup) para criar o único proprietário. Depois disso, o cadastro é fechado e os próximos acessos usam `/login`.
 
@@ -48,7 +48,7 @@ O repositório já está na pasta de projetos solicitada. Execute:
 cursor C:\Users\loren\source\repos\lorenzzoapatatt\colaqui
 ```
 
-Confirme que o Cursor mostra a branch `feature/colaqui-001` antes de editar.
+Confirme que o Cursor mostra a branch `feature/colaqui-003` antes de editar.
 
 ## Comandos principais
 
@@ -66,9 +66,13 @@ corepack pnpm build              # build de produção
 
 ### O que o atualizador modifica
 
-`local:update` executa `docker compose pull` e pode receber correções das imagens `postgres:17-alpine`, `minio/minio:latest` e `minio/mc:latest`. A versão principal do PostgreSQL permanece 17 e os volumes com banco e fotos não são apagados. O programa Docker Desktop não é atualizado por esse comando; atualize-o pela própria interface do Docker Desktop.
+`local:update` recebe correções da imagem `postgres:17-alpine` e recompila, com bases atualizadas, os releases oficiais fixados `RELEASE.2025-10-15T17-29-55Z` do MinIO e `RELEASE.2025-08-13T08-35-41Z` do cliente `mc`. As antigas imagens `minio/minio` e `minio/mc` foram retiradas do registro oficial, portanto o Colaqui não depende de uma imagem de terceiros. A primeira compilação é mais demorada; as próximas usam o cache do Docker.
+
+A versão principal do PostgreSQL permanece 17 e os volumes `colaqui_postgres-data` e `colaqui_minio-data`, que guardam banco e fotos, não são apagados. O programa Docker Desktop não é atualizado por esse comando; atualize-o pela própria interface do Docker Desktop. O MinIO e o `mc` mantêm a licença AGPLv3 dos projetos oficiais; o código do Colaqui permanece MIT.
 
 Se Docker Desktop não estiver iniciado, o comando para imediatamente com uma orientação. Depois de iniciá-lo, execute `corepack pnpm local:dev` novamente. Para encerrar o Next.js, pressione `Ctrl+C`.
+
+Se o seu `.env` já existia antes desta branch, abra-o e altere somente `S3_ENDPOINT=http://localhost:9000` para `S3_ENDPOINT=http://127.0.0.1:9000`. O endereço IPv4 evita falhas intermitentes `ECONNRESET` entre Node.js e Docker Desktop no Windows; o atualizador não faz essa troca sozinho porque preserva arquivos `.env` existentes.
 
 O E2E nunca apaga o banco `colaqui` nem o bucket `colaqui`; ele opera somente em `colaqui_e2e` e `colaqui-e2e`.
 

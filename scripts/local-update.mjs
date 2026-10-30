@@ -27,9 +27,14 @@ export function buildLocalUpdateSteps({ startDev, platform }) {
       args: ["compose", "config", "--quiet"],
     },
     {
-      label: "Atualizando imagens Docker",
+      label: "Atualizando imagem do PostgreSQL",
       command: "docker",
-      args: ["compose", "pull", "postgres", "minio", "minio-init"],
+      args: ["compose", "pull", "postgres"],
+    },
+    {
+      label: "Construindo MinIO oficial",
+      command: "docker",
+      args: ["compose", "build", "--pull", "minio", "minio-init"],
     },
     {
       label: "Iniciando PostgreSQL e MinIO",
@@ -48,7 +53,7 @@ export function buildLocalUpdateSteps({ startDev, platform }) {
     {
       label: "Preparando bucket do MinIO",
       command: "docker",
-      args: ["compose", "up", "--no-log-prefix", "minio-init"],
+      args: ["compose", "run", "--rm", "--no-deps", "-T", "minio-init"],
     },
     {
       label: "Gerando cliente Prisma",
@@ -118,11 +123,26 @@ export function parseLocalUpdateArgs(args) {
   return { startDev: args.includes("--dev") };
 }
 
+export function buildSpawnInvocation(
+  step,
+  { platform, commandShell = process.env.ComSpec ?? "cmd.exe" },
+) {
+  if (platform === "win32" && step.command.endsWith(".cmd")) {
+    return {
+      command: commandShell,
+      args: ["/d", "/s", "/c", step.command, ...step.args],
+    };
+  }
+
+  return { command: step.command, args: step.args };
+}
+
 function defaultRunner(step, { projectRoot, platform }) {
-  return spawnSync(step.command, step.args, {
+  const invocation = buildSpawnInvocation(step, { platform });
+  return spawnSync(invocation.command, invocation.args, {
     cwd: projectRoot,
     env: process.env,
-    shell: platform === "win32" && step.command.endsWith(".cmd"),
+    shell: false,
     stdio: "inherit",
   });
 }

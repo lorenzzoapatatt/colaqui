@@ -16,7 +16,7 @@ jobs:
       APP_URL: http://localhost:3000
       DATABASE_URL: postgresql://colaqui:colaqui_dev@localhost:55432/colaqui
       AUTH_RESET_SECRET: ci-only-reset-secret-with-at-least-32-characters
-      S3_ENDPOINT: http://localhost:9000
+      S3_ENDPOINT: http://127.0.0.1:9000
       S3_REGION: us-east-1
       S3_BUCKET: colaqui
       S3_ACCESS_KEY_ID: minioadmin
@@ -53,17 +53,9 @@ jobs:
 
       - name: Start MinIO
         run: |
-          docker run --detach --name colaqui-minio \
-            --publish 9000:9000 \
-            --env MINIO_ROOT_USER=minioadmin \
-            --env MINIO_ROOT_PASSWORD=minioadmin \
-            minio/minio:latest server /data
-          for attempt in {1..30}; do
-            if curl --fail --silent http://localhost:9000/minio/health/live; then break; fi
-            sleep 1
-          done
-          docker run --rm --network host --entrypoint /bin/sh minio/mc:latest -c \
-            "mc alias set local http://127.0.0.1:9000 minioadmin minioadmin && mc mb --ignore-existing local/colaqui"
+          docker compose build --pull minio minio-init
+          docker compose up --detach --wait --wait-timeout 120 minio
+          docker compose run --rm --no-deps -T minio-init
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma:generate

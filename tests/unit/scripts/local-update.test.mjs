@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  buildSpawnInvocation,
   buildLocalUpdateSteps,
   ensureLocalEnv,
   parseLocalUpdateArgs,
@@ -41,6 +42,38 @@ describe("local update workflow", () => {
     });
   });
 
+  it("pins the Compose project name so worktrees reuse the same local volumes", async () => {
+    const compose = await readFile(
+      join(import.meta.dirname, "../../../docker-compose.yml"),
+      "utf8",
+    );
+
+    expect(compose).toMatch(/^name: colaqui$/m);
+  });
+
+  it("builds MinIO releases with the official version metadata", async () => {
+    const dockerfile = await readFile(
+      join(import.meta.dirname, "../../../docker/minio/Dockerfile"),
+      "utf8",
+    );
+
+    expect(dockerfile).toContain(
+      "github.com/minio/minio/cmd.ReleaseTag=RELEASE.2025-10-15T17-29-55Z",
+    );
+    expect(dockerfile).toContain(
+      "github.com/minio/mc/cmd.ReleaseTag=RELEASE.2025-08-13T08-35-41Z",
+    );
+  });
+
+  it("uses the IPv4 loopback for reliable Docker Desktop storage access", async () => {
+    const envExample = await readFile(
+      join(import.meta.dirname, "../../../.env.example"),
+      "utf8",
+    );
+
+    expect(envExample).toMatch(/^S3_ENDPOINT=http:\/\/127\.0\.0\.1:9000$/m);
+  });
+
   it("builds the strict Windows update sequence and starts dev only on request", () => {
     expect(buildLocalUpdateSteps({ startDev: false, platform: "win32" })).toEqual([
       {
@@ -59,9 +92,14 @@ describe("local update workflow", () => {
         args: ["compose", "config", "--quiet"],
       },
       {
-        label: "Atualizando imagens Docker",
+        label: "Atualizando imagem do PostgreSQL",
         command: "docker",
-        args: ["compose", "pull", "postgres", "minio", "minio-init"],
+        args: ["compose", "pull", "postgres"],
+      },
+      {
+        label: "Construindo MinIO oficial",
+        command: "docker",
+        args: ["compose", "build", "--pull", "minio", "minio-init"],
       },
       {
         label: "Iniciando PostgreSQL e MinIO",
@@ -80,7 +118,7 @@ describe("local update workflow", () => {
       {
         label: "Preparando bucket do MinIO",
         command: "docker",
-        args: ["compose", "up", "--no-log-prefix", "minio-init"],
+        args: ["compose", "run", "--rm", "--no-deps", "-T", "minio-init"],
       },
       {
         label: "Gerando cliente Prisma",
@@ -103,6 +141,21 @@ describe("local update workflow", () => {
       label: "Iniciando Colaqui",
       command: "corepack",
       args: ["pnpm", "dev"],
+    });
+  });
+
+  it("runs Windows command shims through cmd without enabling a child-process shell", () => {
+    expect(
+      buildSpawnInvocation(
+        {
+          command: "corepack.cmd",
+          args: ["pnpm", "prisma:generate"],
+        },
+        { platform: "win32", commandShell: "C:\\Windows\\System32\\cmd.exe" },
+      ),
+    ).toEqual({
+      command: "C:\\Windows\\System32\\cmd.exe",
+      args: ["/d", "/s", "/c", "corepack.cmd", "pnpm", "prisma:generate"],
     });
   });
 
@@ -143,16 +196,17 @@ describe("local update workflow", () => {
         platform: "linux",
         runner(step) {
           executed.push(step.label);
-          return { status: step.label === "Atualizando imagens Docker" ? 17 : 0 };
+          return { status: step.label === "Construindo MinIO oficial" ? 17 : 0 };
         },
       }),
-    ).rejects.toThrow("Atualizando imagens Docker falhou com o código 17");
+    ).rejects.toThrow("Construindo MinIO oficial falhou com o código 17");
 
     expect(executed).toEqual([
       "Verificando Docker Desktop",
       "Instalando dependências",
       "Validando Docker Compose",
-      "Atualizando imagens Docker",
+      "Atualizando imagem do PostgreSQL",
+      "Construindo MinIO oficial",
     ]);
   });
 

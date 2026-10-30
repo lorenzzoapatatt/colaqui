@@ -30,21 +30,24 @@ corepack pnpm local:dev
 3. Verificar que Docker Desktop/Engine está acessível; se não estiver, parar com uma mensagem curta pedindo para iniciá-lo.
 4. Executar `corepack pnpm install --frozen-lockfile`.
 5. Validar o Compose com `docker compose config --quiet`, sem imprimir configuração ou segredos.
-6. Atualizar as imagens com `docker compose pull postgres minio minio-init`.
-7. Subir e aguardar apenas os serviços permanentes com `docker compose up -d --wait postgres minio`, evitando o falso erro causado pelo encerramento esperado do `minio-init`.
-8. Executar `docker compose up --no-log-prefix minio-init` e exigir saída zero.
-9. Executar `corepack pnpm prisma:generate`.
-10. Executar `corepack pnpm prisma migrate deploy`.
-11. Confirmar com `corepack pnpm prisma migrate status`.
-12. Com `--dev`, executar `corepack pnpm dev` somente depois de todas as etapas anteriores.
+6. Atualizar o PostgreSQL com `docker compose pull postgres`.
+7. Compilar MinIO e `mc` a partir dos releases oficiais fixados com `docker compose build --pull minio minio-init`. Essa fonte substitui as imagens oficiais retiradas do registro sem introduzir uma imagem comunitária de terceiros.
+8. Subir e aguardar apenas os serviços permanentes com `docker compose up -d --wait postgres minio`, evitando o falso erro causado pelo encerramento esperado do `minio-init`.
+9. Executar `docker compose run --rm --no-deps -T minio-init` e exigir saída zero, sem deixar o menu interativo do Compose bloquear o PowerShell.
+10. Executar `corepack pnpm prisma:generate`.
+11. Executar `corepack pnpm prisma migrate deploy`.
+12. Confirmar com `corepack pnpm prisma migrate status`.
+13. Com `--dev`, executar `corepack pnpm dev` somente depois de todas as etapas anteriores.
 
 Cada subprocesso será iniciado por argumentos, sem interpolação de shell, e qualquer código diferente de zero interromperá as etapas seguintes.
 
 ## Limites e segurança
 
-- O script atualiza imagens dos contêineres; não instala nem atualiza o aplicativo Docker Desktop.
+- O script atualiza a imagem do PostgreSQL e as imagens-base usadas na compilação do MinIO; não instala nem atualiza o aplicativo Docker Desktop.
 - PostgreSQL permanece fixado na versão principal `17-alpine`; o fluxo pode receber correções da versão 17, mas nunca fará upgrade automático para PostgreSQL 18.
-- Volumes `postgres_data` e `minio_data` permanecem intactos; o script não executa `down -v`, prune, reset ou exclusões.
+- MinIO permanece fixado nos últimos releases oficiais selecionados e nos respectivos commits; uma mudança de release exige revisão explícita no repositório.
+- O projeto Compose tem o nome fixo `colaqui`, inclusive em worktrees, para reutilizar os volumes `colaqui_postgres-data` e `colaqui_minio-data`.
+- Os volumes permanecem intactos; o script não executa `down -v`, prune, reset ou exclusões.
 - Migrations são somente as já versionadas no repositório e são aplicadas com `migrate deploy`, nunca `migrate dev`.
 - O fluxo não executa `git pull`, para não misturar atualização de código com mudanças locais do usuário.
 

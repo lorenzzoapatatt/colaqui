@@ -46,7 +46,9 @@ Cada subprocesso será iniciado por argumentos, sem interpolação de shell, e q
 - O script atualiza a imagem do PostgreSQL e as imagens-base usadas na compilação do MinIO; não instala nem atualiza o aplicativo Docker Desktop.
 - PostgreSQL permanece fixado na versão principal `17-alpine`; o fluxo pode receber correções da versão 17, mas nunca fará upgrade automático para PostgreSQL 18.
 - MinIO permanece fixado nos últimos releases oficiais selecionados e nos respectivos commits; uma mudança de release exige revisão explícita no repositório.
+- A compilação valida que cada tag oficial resolve para o commit declarado antes de gerar o binário.
 - O projeto Compose tem o nome fixo `colaqui`, inclusive em worktrees, para reutilizar os volumes `colaqui_postgres-data` e `colaqui_minio-data`.
+- PostgreSQL, API MinIO e console MinIO são publicados somente em `127.0.0.1`, sem exposição das credenciais locais à rede.
 - Os volumes permanecem intactos; o script não executa `down -v`, prune, reset ou exclusões.
 - Migrations são somente as já versionadas no repositório e são aplicadas com `migrate deploy`, nunca `migrate dev`.
 - O fluxo não executa `git pull`, para não misturar atualização de código com mudanças locais do usuário.

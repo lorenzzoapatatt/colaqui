@@ -49,6 +49,9 @@ describe("local update workflow", () => {
     );
 
     expect(compose).toMatch(/^name: colaqui$/m);
+    expect(compose).toContain('"127.0.0.1:55432:5432"');
+    expect(compose).toContain('"127.0.0.1:9000:9000"');
+    expect(compose).toContain('"127.0.0.1:9001:9001"');
   });
 
   it("builds MinIO releases with the official version metadata", async () => {
@@ -58,11 +61,12 @@ describe("local update workflow", () => {
     );
 
     expect(dockerfile).toContain(
-      "github.com/minio/minio/cmd.ReleaseTag=RELEASE.2025-10-15T17-29-55Z",
+      "github.com/minio/minio/cmd.ReleaseTag=${MINIO_VERSION}",
     );
     expect(dockerfile).toContain(
-      "github.com/minio/mc/cmd.ReleaseTag=RELEASE.2025-08-13T08-35-41Z",
+      "github.com/minio/mc/cmd.ReleaseTag=${MC_VERSION}",
     );
+    expect(dockerfile.match(/go list -m -f/g)).toHaveLength(2);
   });
 
   it("uses the IPv4 loopback for reliable Docker Desktop storage access", async () => {

@@ -38,7 +38,7 @@ O comando `local:dev` cria o `.env` somente se ele ainda não existir, instala a
 
 Abra [http://localhost:3000/setup](http://localhost:3000/setup) para criar o único proprietário. Depois disso, o cadastro é fechado e os próximos acessos usam `/login`.
 
-O PostgreSQL local é exposto em `localhost:55432`, pois as portas 5432 e 5433 já podem estar ocupadas no Windows. O console do MinIO fica em [http://localhost:9001](http://localhost:9001), usando apenas as credenciais locais documentadas no `.env.example`.
+O PostgreSQL local é exposto somente no loopback `127.0.0.1:55432`, pois as portas 5432 e 5433 já podem estar ocupadas no Windows. A API e o console do MinIO também ficam restritos ao computador local; o console abre em [http://127.0.0.1:9001](http://127.0.0.1:9001), usando apenas as credenciais locais documentadas no `.env.example`.
 
 ## Abrir no Cursor
 
@@ -70,7 +70,7 @@ corepack pnpm build              # build de produção
 
 A versão principal do PostgreSQL permanece 17 e os volumes `colaqui_postgres-data` e `colaqui_minio-data`, que guardam banco e fotos, não são apagados. O programa Docker Desktop não é atualizado por esse comando; atualize-o pela própria interface do Docker Desktop. O MinIO e o `mc` mantêm a licença AGPLv3 dos projetos oficiais; o código do Colaqui permanece MIT.
 
-Se Docker Desktop não estiver iniciado, o comando para imediatamente com uma orientação. Depois de iniciá-lo, execute `corepack pnpm local:dev` novamente. Para encerrar o Next.js, pressione `Ctrl+C`.
+Se Docker Desktop não estiver iniciado, o comando para imediatamente com uma orientação. Depois de iniciá-lo, execute `corepack pnpm local:dev` novamente. Para encerrar o Next.js, pressione `Ctrl+C`; se o Windows perguntar `Deseja finalizar o arquivo em lotes (S/N)?`, responda `S` e pressione Enter.
 
 Se o seu `.env` já existia antes desta branch, abra-o e altere somente `S3_ENDPOINT=http://localhost:9000` para `S3_ENDPOINT=http://127.0.0.1:9000`. O endereço IPv4 evita falhas intermitentes `ECONNRESET` entre Node.js e Docker Desktop no Windows; o atualizador não faz essa troca sozinho porque preserva arquivos `.env` existentes.
 

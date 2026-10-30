@@ -10,6 +10,8 @@
   },
   "scripts": {
     "dev": "next dev",
+    "local:update": "node scripts/local-update.mjs",
+    "local:dev": "node scripts/local-update.mjs --dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

@@ -31,14 +31,10 @@ O desenho aprovado está em [`docs/superpowers/specs/2026-10-29-colaqui-design.m
 ```powershell
 cd C:\Users\loren\source\repos\lorenzzoapatatt\colaqui
 git switch feature/colaqui-001
-corepack enable
-pnpm install --frozen-lockfile
-Copy-Item .env.example .env
-docker compose up -d
-pnpm prisma:generate
-pnpm prisma migrate deploy
-pnpm dev
+corepack pnpm local:dev
 ```
+
+O comando `local:dev` cria o `.env` somente se ele ainda não existir, instala as dependências, valida o Compose, atualiza as imagens do PostgreSQL 17 e do MinIO, aguarda os serviços ficarem saudáveis, prepara o bucket, gera o Prisma Client, aplica e verifica as migrations e então inicia o Next.js. Ele não exige `corepack enable` nem permissões administrativas.
 
 Abra [http://localhost:3000/setup](http://localhost:3000/setup) para criar o único proprietário. Depois disso, o cadastro é fechado e os próximos acessos usam `/login`.
 
@@ -57,14 +53,22 @@ Confirme que o Cursor mostra a branch `feature/colaqui-001` antes de editar.
 ## Comandos principais
 
 ```powershell
-pnpm dev                 # servidor Next.js
-pnpm lint                # ESLint
-pnpm typecheck           # TypeScript estrito
-pnpm test:unit           # testes rápidos
-pnpm test:integration    # PostgreSQL e MinIO reais
-pnpm test:e2e            # recria colaqui_e2e/colaqui-e2e e usa Chromium
-pnpm build               # build de produção
+corepack pnpm local:update       # atualiza Docker/PostgreSQL/MinIO e Prisma
+corepack pnpm local:dev          # atualiza tudo e inicia o Next.js
+corepack pnpm dev                # inicia somente o servidor Next.js
+corepack pnpm lint               # ESLint
+corepack pnpm typecheck          # TypeScript estrito
+corepack pnpm test:unit          # testes rápidos
+corepack pnpm test:integration   # PostgreSQL e MinIO reais
+corepack pnpm test:e2e           # recria colaqui_e2e/colaqui-e2e e usa Chromium
+corepack pnpm build              # build de produção
 ```
+
+### O que o atualizador modifica
+
+`local:update` executa `docker compose pull` e pode receber correções das imagens `postgres:17-alpine`, `minio/minio:latest` e `minio/mc:latest`. A versão principal do PostgreSQL permanece 17 e os volumes com banco e fotos não são apagados. O programa Docker Desktop não é atualizado por esse comando; atualize-o pela própria interface do Docker Desktop.
+
+Se Docker Desktop não estiver iniciado, o comando para imediatamente com uma orientação. Depois de iniciá-lo, execute `corepack pnpm local:dev` novamente. Para encerrar o Next.js, pressione `Ctrl+C`.
 
 O E2E nunca apaga o banco `colaqui` nem o bucket `colaqui`; ele opera somente em `colaqui_e2e` e `colaqui-e2e`.
 

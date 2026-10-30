@@ -30,6 +30,17 @@ afterEach(async () => {
 });
 
 describe("local update workflow", () => {
+  it("exposes stable package commands for update and development", async () => {
+    const packageJson = JSON.parse(
+      await readFile(join(import.meta.dirname, "../../../package.json"), "utf8"),
+    );
+
+    expect(packageJson.scripts).toMatchObject({
+      "local:update": "node scripts/local-update.mjs",
+      "local:dev": "node scripts/local-update.mjs --dev",
+    });
+  });
+
   it("builds the strict Windows update sequence and starts dev only on request", () => {
     expect(buildLocalUpdateSteps({ startDev: false, platform: "win32" })).toEqual([
       {

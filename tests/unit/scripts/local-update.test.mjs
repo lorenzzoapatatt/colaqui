@@ -39,6 +39,8 @@ describe("local update workflow", () => {
     expect(packageJson.scripts).toMatchObject({
       "local:update": "node scripts/local-update.mjs",
       "local:dev": "node scripts/local-update.mjs --dev",
+      "test:unit":
+        'vitest run --exclude "tests/integration/**" --exclude "tests/e2e/**"',
     });
   });
 

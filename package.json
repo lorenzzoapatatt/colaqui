@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "pnpm test:unit && pnpm test:integration",
-    "test:unit": "vitest run --exclude tests/integration/** --exclude tests/e2e/**",
+    "test:unit": "vitest run --exclude \"tests/integration/**\" --exclude \"tests/e2e/**\"",
     "test:integration": "vitest run tests/integration --passWithNoTests --no-file-parallelism",
     "test:e2e:prepare": "tsx scripts/prepare-e2e.ts",
     "test:e2e": "pnpm test:e2e:prepare && playwright test",

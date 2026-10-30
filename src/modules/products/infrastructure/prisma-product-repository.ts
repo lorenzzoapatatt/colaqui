@@ -21,7 +21,7 @@ const ACTIVE_LISTING_STATUSES = [
   "ACTION_REQUIRED",
 ] as const;
 
-function toProductView(product: Product): ProductView {
+export function toProductView(product: Product): ProductView {
   if (product.quantity !== 1) {
     throw new Error("Product quantity invariant violated.");
   }

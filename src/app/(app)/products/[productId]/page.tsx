@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ProductArchiveButton } from "@/components/products/product-archive-button";
 import { ProductStatus } from "@/components/products/product-status";
 import { ProductPhotoManager } from "@/components/products/product-photo-manager";
 import { formatBRLFromCents } from "@/lib/format/money";
@@ -42,6 +43,7 @@ export default async function ProductDetailPage({
         initialPhotos={photos}
         initialVersion={product.version}
       />
+      <ProductArchiveButton productId={product.id} version={product.version} />
     </main>
   );
 }

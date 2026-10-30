@@ -112,6 +112,25 @@ describe("single-owner authentication", () => {
     expect(storedSession.tokenHash).not.toBe(session.rawToken);
   });
 
+  it("counts concurrent login failures atomically", async () => {
+    const repository = new PrismaAuthRepository(prisma);
+    const now = new Date("2026-10-29T12:00:00.000Z");
+    const key = {
+      identityHash: "identity-concurrent",
+      ipHash: "ip-concurrent",
+    };
+
+    const states = await Promise.all(
+      Array.from({ length: 5 }, () => repository.recordLoginFailure(key, now)),
+    );
+
+    expect(Math.max(...states.map((state) => state.failures))).toBe(5);
+    await expect(repository.getLoginAttempt(key)).resolves.toMatchObject({
+      failures: 5,
+      blockedUntil: new Date("2026-10-29T12:15:00.000Z"),
+    });
+  });
+
   it("validates stored sessions, rotates them on password change, and revokes on logout", async () => {
     const now = new Date("2026-10-29T12:00:00.000Z");
     const repository = new PrismaAuthRepository(prisma);

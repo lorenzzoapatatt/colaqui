@@ -7,7 +7,7 @@ import type {
 } from "@/modules/auth/application/auth-repository";
 import { toOwnerView } from "@/modules/auth/application/auth-repository";
 import { OwnerAlreadyConfiguredError } from "@/modules/auth/domain/auth-errors";
-import { hashPassword } from "@/modules/auth/domain/password";
+import { hashPassword as hashOwnerPassword } from "@/modules/auth/domain/password";
 import { PrismaAuthRepository } from "@/modules/auth/infrastructure/prisma-auth-repository";
 
 const setupOwnerSchema = z.object({
@@ -22,6 +22,7 @@ export interface SetupOwnerInput {
 
 export interface SetupOwnerDependencies {
   repository: AuthRepository;
+  hashPassword?: typeof hashOwnerPassword;
 }
 
 export function normalizeOwnerEmail(email: string): string {
@@ -29,7 +30,10 @@ export function normalizeOwnerEmail(email: string): string {
 }
 
 function defaultDependencies(): SetupOwnerDependencies {
-  return { repository: new PrismaAuthRepository(getPrisma()) };
+  return {
+    repository: new PrismaAuthRepository(getPrisma()),
+    hashPassword: hashOwnerPassword,
+  };
 }
 
 export async function setupOwner(
@@ -40,7 +44,13 @@ export async function setupOwner(
     ...input,
     email: normalizeOwnerEmail(input.email),
   });
-  const passwordHash = await hashPassword(parsed.password);
+  if (await dependencies.repository.hasOwner()) {
+    throw new OwnerAlreadyConfiguredError();
+  }
+
+  const passwordHash = await (dependencies.hashPassword ?? hashOwnerPassword)(
+    parsed.password,
+  );
 
   try {
     const owner = await dependencies.repository.createOwner({

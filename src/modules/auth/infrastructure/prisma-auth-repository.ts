@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { PrismaClient } from "@/generated/prisma/client";
 import type {
   AuthRepository,
@@ -6,12 +8,28 @@ import type {
   SessionOwnerRecord,
 } from "@/modules/auth/application/auth-repository";
 import {
-  nextLoginFailure,
+  LOGIN_BLOCK_MS,
+  LOGIN_MAX_FAILURES,
+  LOGIN_WINDOW_MS,
   type LoginAttemptState,
 } from "@/modules/auth/domain/login-rate-limit";
 
+interface LoginAttemptRow {
+  failures: number;
+  windowStartedAt: Date;
+  blockedUntil: Date | null;
+}
+
 export class PrismaAuthRepository implements AuthRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  async hasOwner(): Promise<boolean> {
+    const owner = await this.prisma.owner.findUnique({
+      where: { singletonKey: "OWNER" },
+      select: { id: true },
+    });
+    return owner !== null;
+  }
 
   createOwner(input: {
     email: string;
@@ -123,25 +141,55 @@ export class PrismaAuthRepository implements AuthRepository {
     key: LoginAttemptKey,
     now: Date,
   ): Promise<LoginAttemptState> {
-    return this.prisma.$transaction(async (transaction) => {
-      const current = await transaction.loginAttempt.findUnique({
-        where: { identityHash_ipHash: key },
-      });
-      const next = nextLoginFailure(current, now);
-      const saved = await transaction.loginAttempt.upsert({
-        where: { identityHash_ipHash: key },
-        create: {
-          ...key,
-          ...next,
-        },
-        update: next,
-      });
-      return {
-        failures: saved.failures,
-        windowStartedAt: saved.windowStartedAt,
-        blockedUntil: saved.blockedUntil,
-      };
-    });
+    const windowCutoff = new Date(now.getTime() - LOGIN_WINDOW_MS);
+    const blockedUntil = new Date(now.getTime() + LOGIN_BLOCK_MS);
+    const [saved] = await this.prisma.$queryRaw<LoginAttemptRow[]>`
+      INSERT INTO "LoginAttempt" (
+        "id",
+        "identityHash",
+        "ipHash",
+        "failures",
+        "windowStartedAt",
+        "blockedUntil",
+        "updatedAt"
+      ) VALUES (
+        ${randomUUID()}::uuid,
+        ${key.identityHash},
+        ${key.ipHash},
+        1,
+        ${now},
+        NULL,
+        ${now}
+      )
+      ON CONFLICT ("identityHash", "ipHash") DO UPDATE SET
+        "failures" = CASE
+          WHEN "LoginAttempt"."windowStartedAt" <= ${windowCutoff}
+            OR ("LoginAttempt"."blockedUntil" IS NOT NULL AND "LoginAttempt"."blockedUntil" <= ${now})
+            THEN 1
+          ELSE "LoginAttempt"."failures" + 1
+        END,
+        "windowStartedAt" = CASE
+          WHEN "LoginAttempt"."windowStartedAt" <= ${windowCutoff}
+            OR ("LoginAttempt"."blockedUntil" IS NOT NULL AND "LoginAttempt"."blockedUntil" <= ${now})
+            THEN ${now}
+          ELSE "LoginAttempt"."windowStartedAt"
+        END,
+        "blockedUntil" = CASE
+          WHEN "LoginAttempt"."windowStartedAt" <= ${windowCutoff}
+            OR ("LoginAttempt"."blockedUntil" IS NOT NULL AND "LoginAttempt"."blockedUntil" <= ${now})
+            THEN NULL
+          WHEN "LoginAttempt"."failures" + 1 >= ${LOGIN_MAX_FAILURES}
+            THEN ${blockedUntil}
+          ELSE "LoginAttempt"."blockedUntil"
+        END,
+        "updatedAt" = ${now}
+      RETURNING "failures", "windowStartedAt", "blockedUntil"
+    `;
+
+    if (!saved) {
+      throw new Error("Falha ao registrar tentativa de login.");
+    }
+    return saved;
   }
 
   async clearLoginAttempt(key: LoginAttemptKey): Promise<void> {

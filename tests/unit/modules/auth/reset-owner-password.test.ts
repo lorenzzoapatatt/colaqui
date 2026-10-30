@@ -8,6 +8,7 @@ import { verifyPassword } from "@/modules/auth/domain/password";
 
 function makeRepository(): AuthRepository {
   return {
+    hasOwner: vi.fn(),
     createOwner: vi.fn(),
     findOwnerByEmail: vi.fn().mockResolvedValue({
       id: "owner-id",

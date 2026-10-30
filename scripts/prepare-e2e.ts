@@ -11,16 +11,12 @@ import {
 import { Pool } from "pg";
 
 import { getServerEnv } from "@/lib/config/env";
+import {
+  E2E_DATABASE_NAME,
+  resolveE2EDatabaseUrl,
+} from "@/lib/testing/e2e-database";
 
-const E2E_DATABASE_NAME = "colaqui_e2e";
 const E2E_BUCKET = "colaqui-e2e";
-
-function e2eDatabaseUrl(source: string): string {
-  if (process.env.E2E_DATABASE_URL) return process.env.E2E_DATABASE_URL;
-  const url = new URL(source);
-  url.pathname = `/${E2E_DATABASE_NAME}`;
-  return url.toString();
-}
 
 async function recreateDatabase(databaseUrl: string): Promise<void> {
   const adminUrl = new URL(databaseUrl);
@@ -94,7 +90,10 @@ async function migrate(databaseUrl: string): Promise<void> {
 
 async function main(): Promise<void> {
   const env = getServerEnv();
-  const databaseUrl = e2eDatabaseUrl(env.databaseUrl);
+  const databaseUrl = resolveE2EDatabaseUrl(
+    env.databaseUrl,
+    process.env.E2E_DATABASE_URL,
+  );
   await recreateDatabase(databaseUrl);
   const s3 = new S3Client({
     endpoint: env.s3.endpoint,

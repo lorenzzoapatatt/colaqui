@@ -26,6 +26,7 @@ export interface LoginAttemptKey {
 }
 
 export interface AuthRepository {
+  hasOwner(): Promise<boolean>;
   createOwner(input: {
     email: string;
     passwordHash: string;

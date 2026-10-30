@@ -1,4 +1,4 @@
-import { getPgPool } from "@/infrastructure/db/prisma";
+import { getPrisma } from "@/infrastructure/db/prisma";
 import { getS3ObjectStorage } from "@/infrastructure/storage/s3-object-storage";
 import { getServerEnv } from "@/lib/config/env";
 import { getHealth, type HealthReport } from "@/modules/health/application/get-health";
@@ -13,11 +13,11 @@ const unavailable: HealthReport = {
 export async function GET(): Promise<Response> {
   try {
     const env = getServerEnv();
-    const database = getPgPool(env.databaseUrl);
+    const database = getPrisma();
     const storage = getS3ObjectStorage(env.s3);
     const report = await getHealth({
       database: async () => {
-        await database.query("SELECT 1");
+        await database.$queryRaw`SELECT 1`;
       },
       storage: async () => storage.check(),
     });

@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProductCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  POOR
+}
+
+enum ProductStatus {
+  DRAFT
+  READY
+  LISTED
+  RESERVED
+  SOLD
+  ARCHIVED
+}
+
+enum Platform {
+  MERCADO_LIVRE
+  OLX
+  ENJOEI
+  FACEBOOK_MARKETPLACE
+}
+
+enum ConnectionMode {
+  API
+  ASSISTED
+}
+
+enum ConnectionStatus {
+  DISCONNECTED
+  CONNECTED
+  ACTION_REQUIRED
+  DISABLED
+}
+
+enum ListingStatus {
+  DRAFT
+  READY
+  PUBLISHING
+  ACTIVE
+  PAUSED
+  SOLD
+  CLOSING
+  CLOSED
+  ERROR
+  ACTION_REQUIRED
+}
+
+enum ListingOperation {
+  PUBLISH
+  UPDATE
+  PAUSE
+  CLOSE
+  STATUS
+}
+
+enum AttemptStatus {
+  STARTED
+  SUCCEEDED
+  FAILED
+}
+
+enum AssistedTaskType {
+  PUBLISH
+  UPDATE
+  CLOSE
+}
+
+enum AssistedTaskStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum SaleSourceType {
+  LISTING
+  OFFLINE
+  OTHER
+}
+
+enum SaleStatus {
+  RESERVED
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+model Owner {
+  id           String         @id @default(uuid()) @db.Uuid
+  singletonKey String         @unique @default("OWNER")
+  email        String         @unique
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  sessions     OwnerSession[]
+}
+
+model OwnerSession {
+  id         String    @id @default(uuid()) @db.Uuid
+  ownerId    String    @db.Uuid
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  lastUsedAt DateTime  @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  owner      Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, expiresAt])
+}
+
+model LoginAttempt {
+  id              String    @id @default(uuid()) @db.Uuid
+  identityHash    String
+  ipHash          String
+  failures        Int       @default(0)
+  windowStartedAt DateTime  @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([identityHash, ipHash])
+  @@index([blockedUntil])
+}
+
+model Product {
+  id           String           @id @default(uuid()) @db.Uuid
+  title        String
+  description  String
+  condition    ProductCondition
+  priceCents   Int
+  categoryHint String?
+  brand        String?
+  locationText String?
+  postalCode   String?
+  quantity     Int              @default(1)
+  status       ProductStatus    @default(DRAFT)
+  version      Int              @default(1)
+  soldAt       DateTime?
+  archivedAt   DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  photos       ProductPhoto[]
+  listings     Listing[]
+  sales        Sale[]
+
+  @@index([status, updatedAt])
+  @@index([archivedAt])
+}
+
+model ProductPhoto {
+  id                 String    @id @default(uuid()) @db.Uuid
+  productId          String    @db.Uuid
+  objectKey          String    @unique
+  processedObjectKey String    @unique
+  bucket             String
+  mimeType           String
+  sizeBytes          Int
+  width              Int
+  height             Int
+  checksum           String
+  sortOrder          Int
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  product            Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, sortOrder])
+  @@index([productId, deletedAt, sortOrder])
+}
+
+model ChannelConnection {
+  id                    String           @id @default(uuid()) @db.Uuid
+  platform              Platform         @unique
+  mode                  ConnectionMode
+  status                ConnectionStatus @default(DISCONNECTED)
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  metadata              Json?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+model Listing {
+  id                      String           @id @default(uuid()) @db.Uuid
+  productId               String           @db.Uuid
+  platform                Platform
+  mode                    ConnectionMode
+  status                  ListingStatus    @default(DRAFT)
+  channelPriceCents       Int?
+  externalId              String?
+  externalUrl             String?
+  platformCategoryId      String?
+  platformData            Json?
+  publishedProductVersion Int?
+  publishedSnapshotHash   String?
+  lastSyncedAt            DateTime?
+  lastErrorCode           String?
+  lastErrorMessage        String?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  product                 Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  attempts                ListingAttempt[]
+  assistedTasks           AssistedTask[]
+  sales                   Sale[]
+
+  @@unique([productId, platform])
+  @@index([status, updatedAt])
+}
+
+model ListingAttempt {
+  id              String           @id @default(uuid()) @db.Uuid
+  listingId       String           @db.Uuid
+  operation       ListingOperation
+  status          AttemptStatus    @default(STARTED)
+  idempotencyKey  String           @unique
+  requestSummary  Json?
+  responseSummary Json?
+  errorCode       String?
+  errorMessage    String?
+  startedAt       DateTime         @default(now())
+  finishedAt      DateTime?
+  listing         Listing          @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, startedAt])
+}
+
+model AssistedTask {
+  id              String             @id @default(uuid()) @db.Uuid
+  listingId       String             @db.Uuid
+  type            AssistedTaskType
+  status          AssistedTaskStatus @default(PENDING)
+  preparedPayload Json
+  destinationUrl  String?
+  completedAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  listing         Listing            @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+model Sale {
+  id              String         @id @default(uuid()) @db.Uuid
+  productId       String         @db.Uuid
+  sourceType      SaleSourceType
+  sourceListingId String?        @db.Uuid
+  status          SaleStatus
+  externalOrderId String?
+  reservedAt      DateTime?
+  paidAt          DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  product         Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sourceListing   Listing?       @relation(fields: [sourceListingId], references: [id], onDelete: SetNull)
+
+  @@index([productId, status])
+  @@index([externalOrderId])
+}

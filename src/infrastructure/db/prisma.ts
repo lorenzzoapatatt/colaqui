@@ -1,15 +1,23 @@
-import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-let pool: Pool | undefined;
+import { PrismaClient } from "@/generated/prisma/client";
+import { getServerEnv } from "@/lib/config/env";
 
-export function getPgPool(connectionString: string): Pool {
-  pool ??= new Pool({ connectionString, max: 10 });
-  return pool;
+let prisma: PrismaClient | undefined;
+
+export function getPrisma(): PrismaClient {
+  if (!prisma) {
+    const env = getServerEnv();
+    prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: env.databaseUrl }),
+    });
+  }
+  return prisma;
 }
 
-export async function closePgPool(): Promise<void> {
-  if (pool) {
-    await pool.end();
-    pool = undefined;
+export async function disconnectPrisma(): Promise<void> {
+  if (prisma) {
+    await prisma.$disconnect();
+    prisma = undefined;
   }
 }

@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { ProductStatus } from "@/components/products/product-status";
+import { ProductPhotoManager } from "@/components/products/product-photo-manager";
 import { formatBRLFromCents } from "@/lib/format/money";
 import { requirePageOwner } from "@/modules/auth/presentation/current-owner";
 import { getProduct } from "@/modules/products/application/get-product";
+import { listProductPhotos } from "@/modules/media/application/list-product-photos";
 
 export default async function ProductDetailPage({
   params,
@@ -12,6 +14,7 @@ export default async function ProductDetailPage({
 }) {
   await requirePageOwner();
   const product = await getProduct((await params).productId);
+  const photos = await listProductPhotos(product.id);
 
   return (
     <main className="app-shell app-shell--narrow">
@@ -34,6 +37,11 @@ export default async function ProductDetailPage({
           <div><dt>Local</dt><dd>{product.locationText ?? "Não informado"}</dd></div>
         </dl>
       </section>
+      <ProductPhotoManager
+        productId={product.id}
+        initialPhotos={photos}
+        initialVersion={product.version}
+      />
     </main>
   );
 }

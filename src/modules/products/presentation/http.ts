@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { logger } from "@/infrastructure/observability/logger";
 import { problem } from "@/lib/http/problem";
 import { AuthError } from "@/modules/auth/domain/auth-errors";
+import { MediaError } from "@/modules/media/domain/photo";
 import { ProductError } from "@/modules/products/domain/product-errors";
 
 export function productEtag(version: number): string {
@@ -21,7 +22,11 @@ export function parseExpectedVersion(request: Request): number {
 }
 
 export function productErrorResponse(error: unknown): NextResponse {
-  if (error instanceof AuthError || error instanceof ProductError) {
+  if (
+    error instanceof AuthError ||
+    error instanceof ProductError ||
+    error instanceof MediaError
+  ) {
     return NextResponse.json(problem(error.status, error.title, error.detail), {
       status: error.status,
     });

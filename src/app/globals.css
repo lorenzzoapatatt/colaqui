@@ -397,6 +397,93 @@ select {
   white-space: pre-wrap;
 }
 
+.photo-manager {
+  margin-top: 1rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: 0 12px 36px rgb(26 46 37 / 7%);
+}
+
+.photo-manager__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.photo-manager__header h2,
+.photo-manager__header p {
+  margin: 0.25rem 0;
+}
+
+.photo-manager__header p {
+  color: #526159;
+  font-size: 0.9rem;
+}
+
+.photo-upload {
+  cursor: pointer;
+}
+
+.photo-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.photo-upload:focus-within {
+  outline: 3px solid #2f8f6d;
+  outline-offset: 3px;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.photo-item {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: #f7f7f3;
+}
+
+.photo-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.photo-item__actions {
+  display: grid;
+  grid-template-columns: 2.75rem 2.75rem 1fr;
+  gap: 0.35rem;
+  padding: 0.55rem;
+}
+
+.photo-item__actions button {
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  color: var(--foreground);
+  background: #fff;
+  cursor: pointer;
+}
+
+.photo-item__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 @media (max-width: 40rem) {
   .page-header {
     align-items: stretch;
@@ -415,5 +502,10 @@ select {
   .form-actions {
     align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .photo-manager__header {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
